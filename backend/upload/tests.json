@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "POST upload without session returns 401",
+      "method": "POST",
+      "path": "/",
+      "body": {},
+      "expectedStatus": 401
+    }
+  ]
+}

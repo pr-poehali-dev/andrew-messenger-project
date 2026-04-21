@@ -79,14 +79,14 @@ def handler(event: dict, context) -> dict:
 
         if after_id > 0:
             cur.execute("""
-                SELECT m.id, m.sender_id, u.display_name, u.avatar_letters, m.text, m.created_at
+                SELECT m.id, m.sender_id, u.display_name, u.avatar_letters, m.text, m.created_at, m.file_url, m.file_name, m.file_type
                 FROM messages m JOIN users u ON u.id = m.sender_id
                 WHERE m.chat_id = %s AND m.id > %s
                 ORDER BY m.created_at ASC
             """, (chat_id, after_id))
         else:
             cur.execute("""
-                SELECT m.id, m.sender_id, u.display_name, u.avatar_letters, m.text, m.created_at
+                SELECT m.id, m.sender_id, u.display_name, u.avatar_letters, m.text, m.created_at, m.file_url, m.file_name, m.file_type
                 FROM messages m JOIN users u ON u.id = m.sender_id
                 WHERE m.chat_id = %s
                 ORDER BY m.created_at ASC
@@ -100,6 +100,9 @@ def handler(event: dict, context) -> dict:
             "sender_avatar": r[3],
             "text": r[4],
             "created_at": str(r[5]),
+            "file_url": r[6],
+            "file_name": r[7],
+            "file_type": r[8],
             "is_mine": r[1] == user["id"]
         } for r in cur.fetchall()]
         conn.close()

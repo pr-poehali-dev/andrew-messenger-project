@@ -1,19 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
-import { authApi, chatsApi, messagesApi } from "@/api";
+import { authApi, chatsApi, messagesApi, uploadApi } from "@/api";
 
 /* ─── Types ─── */
 interface User { id: number; username: string; display_name: string; avatar_letters: string }
 interface Chat { id: number; partner_id: number; partner_name: string; partner_avatar: string; partner_last_seen: string | null; last_msg: string | null; last_msg_time: string | null }
-interface Message { id: number; sender_id: number; sender_name: string; sender_avatar: string; text: string; created_at: string; is_mine: boolean }
+interface Message { id: number; sender_id: number; sender_name: string; sender_avatar: string; text: string; created_at: string; is_mine: boolean; file_url?: string; file_name?: string; file_type?: string }
 
 /* ─── Avatar ─── */
-function Av({ letters, size = "md", online }: { letters: string; size?: "sm" | "md" | "lg"; online?: boolean }) {
+function Av({ letters, size = "md" }: { letters: string; size?: "sm" | "md" | "lg" }) {
   const s = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-lg" }[size];
   return (
-    <div className={`relative inline-flex flex-shrink-0 ${online ? "online-dot" : ""}`}>
-      <div className={`${s} rounded-full gradient-btn flex items-center justify-center font-bold text-white`}>{letters || "?"}</div>
-    </div>
+    <div className={`${s} rounded-full gradient-btn flex items-center justify-center font-bold text-white flex-shrink-0`}>{letters || "?"}</div>
   );
 }
 
@@ -53,7 +51,7 @@ function AuthScreen({ onAuth }: { onAuth: (user: User) => void }) {
             <span className="text-white font-black text-2xl">A</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Andrew</h1>
-          <p className="text-white/40 text-sm mt-1">Мессенджер с шифрованием</p>
+          <p className="text-white/40 text-sm mt-1">Мессенджер</p>
         </div>
 
         <div className="surface rounded-2xl p-6 border border-white/5">
@@ -125,8 +123,6 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
   }, []);
 
   useEffect(() => { loadChats(); }, [loadChats]);
-
-  // Polling чатов каждые 5 сек
   useEffect(() => {
     const t = setInterval(loadChats, 5000);
     return () => clearInterval(t);
@@ -135,18 +131,12 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
   const openChat = async (partner_id: number) => {
     const res = await chatsApi.open(partner_id);
     if (res.chat_id) {
-      await loadChats();
-      const found = chats.find(c => c.id === res.chat_id);
-      if (found) setActiveChat(found);
-      else {
-        const r2 = await chatsApi.list();
-        if (r2.chats) {
-          setChats(r2.chats);
-          const f2 = r2.chats.find((c: Chat) => c.id === res.chat_id);
-          if (f2) setActiveChat(f2);
-        }
+      const r2 = await chatsApi.list();
+      if (r2.chats) {
+        setChats(r2.chats);
+        const found = r2.chats.find((c: Chat) => c.id === res.chat_id);
+        if (found) { setActiveChat(found); setSection("chats"); }
       }
-      setSection("chats");
     }
   };
 
@@ -157,8 +147,8 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
   ] as const;
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: "hsl(224, 30%, 7%)", fontFamily: "'Golos Text', sans-serif" }}>
-      {/* Sidebar навигации */}
+    <div className="h-screen flex overflow-hidden" style={{ background: "hsl(224, 30%, 7%)" }}>
+      {/* Sidebar */}
       <nav className="w-16 flex flex-col items-center py-4 gap-1 border-r border-white/5 flex-shrink-0" style={{ background: "hsl(225, 30%, 9%)" }}>
         <div className="mb-4">
           <div className="w-9 h-9 rounded-xl gradient-btn flex items-center justify-center pulse-glow cursor-default">
@@ -167,9 +157,9 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
         </div>
         {navItems.map(item => (
           <button key={item.id} onClick={() => setSection(item.id)} title={item.label}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group ${section === item.id ? "gradient-btn text-white" : "text-white/40 hover:text-white/70 hover:bg-white/6"}`}>
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group ${section === item.id ? "gradient-btn text-white" : "text-white/40 hover:text-white/70 hover:bg-white/5"}`}>
             <Icon name={item.icon} size={18} />
-            <span className="absolute left-14 bg-gray-900/95 text-white text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 border border-white/10">
+            <span className="absolute left-14 bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 border border-white/10">
               {item.label}
             </span>
           </button>
@@ -178,17 +168,15 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
           <button onClick={onLogout} title="Выйти"
             className="w-10 h-10 rounded-xl flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all group relative">
             <Icon name="LogOut" size={18} />
-            <span className="absolute left-14 bg-gray-900/95 text-white text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 border border-white/10">
-              Выйти
-            </span>
+            <span className="absolute left-14 bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 border border-white/10">Выйти</span>
           </button>
         </div>
       </nav>
 
-      {/* Список чатов / Поиск / Профиль */}
+      {/* Панель слева */}
       <div className="w-72 flex-shrink-0 border-r border-white/5 flex flex-col">
-        {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} currentUserId={user.id} />}
-        {section === "search" && <SearchPeople currentUser={user} onOpenChat={openChat} />}
+        {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} />}
+        {section === "search" && <SearchPeople onOpenChat={openChat} />}
         {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} />}
       </div>
 
@@ -203,7 +191,7 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
 }
 
 /* ─── Chat List ─── */
-function ChatList({ chats, activeChat, onSelect, currentUserId }: { chats: Chat[]; activeChat: Chat | null; onSelect: (c: Chat) => void; currentUserId: number }) {
+function ChatList({ chats, activeChat, onSelect }: { chats: Chat[]; activeChat: Chat | null; onSelect: (c: Chat) => void }) {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-white/5">
@@ -213,7 +201,7 @@ function ChatList({ chats, activeChat, onSelect, currentUserId }: { chats: Chat[
         {chats.length === 0 && (
           <div className="text-center text-white/25 mt-16 px-4">
             <Icon name="MessageCircle" size={36} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Нет чатов.<br/>Найдите людей через поиск</p>
+            <p className="text-sm">Нет чатов. Найдите людей через поиск</p>
           </div>
         )}
         {chats.map(c => (
@@ -239,60 +227,108 @@ function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastIdRef = useRef(0);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchMessages = useCallback(async (initial = false) => {
-    const after = initial ? 0 : lastIdRef.current;
-    const res = await messagesApi.history(chat.id, after);
-    if (res.messages && res.messages.length > 0) {
-      setMessages(prev => initial ? res.messages : [...prev, ...res.messages]);
-      lastIdRef.current = res.messages[res.messages.length - 1].id;
-    }
+  // Загрузка истории и запуск polling
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      const res = await messagesApi.history(chat.id, lastIdRef.current);
+      if (res.messages && res.messages.length > 0) {
+        setMessages(prev => [...prev, ...res.messages]);
+        lastIdRef.current = res.messages[res.messages.length - 1].id;
+      }
+    }, 2500);
   }, [chat.id]);
 
   useEffect(() => {
     setMessages([]);
     lastIdRef.current = 0;
-    fetchMessages(true);
-  }, [chat.id, fetchMessages]);
-
-  // Polling новых сообщений каждые 2 сек
-  useEffect(() => {
-    const t = setInterval(() => fetchMessages(false), 2000);
-    return () => clearInterval(t);
-  }, [fetchMessages]);
+    setError("");
+    // Начальная загрузка
+    messagesApi.history(chat.id, 0).then(res => {
+      if (res.messages) {
+        setMessages(res.messages);
+        if (res.messages.length > 0) {
+          lastIdRef.current = res.messages[res.messages.length - 1].id;
+        }
+      }
+    });
+    startPolling();
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, [chat.id, startPolling]);
 
   // Скролл вниз при новых сообщениях
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length]);
 
   const send = async () => {
     const t = text.trim();
     if (!t || sending) return;
-    setText(""); setSending(true);
-    const res = await messagesApi.send(chat.id, t);
-    if (res.id) {
-      setMessages(prev => [...prev, res]);
-      lastIdRef.current = res.id;
+    setSending(true);
+    setError("");
+    setText("");
+    try {
+      const res = await messagesApi.send(chat.id, t);
+      if (res.error) {
+        setError(res.error);
+        setText(t); // вернуть текст при ошибке
+      } else if (res.id) {
+        setMessages(prev => [...prev, res]);
+        lastIdRef.current = res.id;
+      }
+    } catch {
+      setError("Ошибка отправки");
+      setText(t);
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { setError("Файл слишком большой (макс 20 МБ)"); return; }
+    setUploading(true);
+    setError("");
+    try {
+      const b64 = await fileToBase64(file);
+      const res = await uploadApi.file(chat.id, b64, file.name, file.type);
+      if (res.error) {
+        setError(res.error);
+      } else if (res.id) {
+        setMessages(prev => [...prev, res]);
+        lastIdRef.current = res.id;
+      }
+    } catch {
+      setError("Ошибка загрузки файла");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const isImage = (type?: string) => type?.startsWith("image/");
 
   return (
     <div className="flex flex-col h-full">
       {/* Шапка */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 glass flex-shrink-0">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 flex-shrink-0" style={{ background: "hsl(225,28%,10%)" }}>
         <Av letters={chat.partner_avatar} size="md" />
         <div>
           <div className="font-semibold text-white/90">{chat.partner_name}</div>
-          <div className="text-xs text-white/40">@{chat.partner_name.toLowerCase().replace(/\s/g, "")}</div>
+          <div className="text-xs text-green-400/70">в сети</div>
         </div>
       </div>
 
       {/* Сообщения */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-1.5">
         {messages.length === 0 && (
           <div className="text-center text-white/25 mt-16">
             <Icon name="MessageCircle" size={36} className="mx-auto mb-2 opacity-30" />
@@ -301,31 +337,64 @@ function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
         )}
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.is_mine ? "justify-end" : "justify-start"} animate-fade-in`}>
-            {!m.is_mine && <div className="mr-2 mt-auto"><Av letters={m.sender_avatar} size="sm" /></div>}
-            <div className={`max-w-[70%] px-4 py-2.5 ${m.is_mine ? "message-out text-white" : "message-in text-white/85"}`}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.text}</p>
-              <p className={`text-xs mt-1 ${m.is_mine ? "text-white/55 text-right" : "text-white/35"}`}>{formatTime(m.created_at)}</p>
+            {!m.is_mine && <div className="mr-2 mt-auto mb-1"><Av letters={m.sender_avatar} size="sm" /></div>}
+            <div className={`max-w-[70%] ${m.is_mine ? "message-out text-white" : "message-in text-white/85"}`}>
+              {m.file_url ? (
+                isImage(m.file_type) ? (
+                  <div className="p-1">
+                    <img src={m.file_url} alt={m.file_name} className="rounded-xl max-w-full max-h-64 object-cover" />
+                    <p className={`text-xs mt-1 px-1 ${m.is_mine ? "text-white/55 text-right" : "text-white/35"}`}>{formatTime(m.created_at)}</p>
+                  </div>
+                ) : (
+                  <div className="px-4 py-3">
+                    <a href={m.file_url} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                      <Icon name="FileText" size={20} className={m.is_mine ? "text-white/80" : "text-white/50"} />
+                      <span className="text-sm underline underline-offset-2 break-all">{m.file_name}</span>
+                    </a>
+                    <p className={`text-xs mt-1.5 ${m.is_mine ? "text-white/55 text-right" : "text-white/35"}`}>{formatTime(m.created_at)}</p>
+                  </div>
+                )
+              ) : (
+                <div className="px-4 py-2.5">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.text}</p>
+                  <p className={`text-xs mt-1 ${m.is_mine ? "text-white/55 text-right" : "text-white/35"}`}>{formatTime(m.created_at)}</p>
+                </div>
+              )}
             </div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
+      {/* Ошибка */}
+      {error && (
+        <div className="mx-6 mb-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError("")}><Icon name="X" size={12} /></button>
+        </div>
+      )}
+
       {/* Ввод */}
-      <div className="px-6 py-4 border-t border-white/5 glass flex-shrink-0">
-        <div className="flex items-end gap-3">
+      <div className="px-4 py-4 border-t border-white/5 flex-shrink-0" style={{ background: "hsl(225,28%,10%)" }}>
+        <div className="flex items-end gap-2">
+          <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar" />
+          <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+            className="p-2.5 rounded-xl text-white/40 hover:text-white/70 hover:bg-white/8 transition-all flex-shrink-0 disabled:opacity-50" title="Прикрепить файл">
+            {uploading ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="Paperclip" size={18} />}
+          </button>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             rows={1}
-            className="flex-1 bg-white/5 rounded-2xl px-4 py-3 text-sm placeholder:text-white/30 outline-none focus:ring-1 focus:ring-blue-500/40 transition-all resize-none"
+            className="flex-1 bg-white/5 rounded-2xl px-4 py-3 text-sm placeholder:text-white/30 outline-none focus:ring-1 focus:ring-blue-500/40 transition-all resize-none border border-white/5"
             placeholder="Написать сообщение... (Enter — отправить)"
             style={{ maxHeight: "120px" }}
           />
           <button onClick={send} disabled={!text.trim() || sending}
-            className={`p-3 rounded-xl flex-shrink-0 transition-all ${text.trim() ? "gradient-btn pulse-glow" : "bg-white/8"} disabled:opacity-50`}>
-            <Icon name="Send" size={18} className="text-white" />
+            className={`p-3 rounded-xl flex-shrink-0 transition-all ${text.trim() && !sending ? "gradient-btn" : "bg-white/8"} disabled:opacity-40`}>
+            {sending ? <Icon name="Loader2" size={18} className="text-white animate-spin" /> : <Icon name="Send" size={18} className="text-white" />}
           </button>
         </div>
       </div>
@@ -334,7 +403,7 @@ function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
 }
 
 /* ─── Search People ─── */
-function SearchPeople({ currentUser, onOpenChat }: { currentUser: User; onOpenChat: (partner_id: number) => void }) {
+function SearchPeople({ onOpenChat }: { onOpenChat: (partner_id: number) => void }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ id: number; username: string; display_name: string; avatar_letters: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -363,12 +432,8 @@ function SearchPeople({ currentUser, onOpenChat }: { currentUser: User; onOpenCh
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {loading && <div className="text-center text-white/30 text-xs mt-4">Поиск...</div>}
-        {!loading && q.length >= 2 && results.length === 0 && (
-          <div className="text-center text-white/25 mt-8 text-sm">Никого не найдено</div>
-        )}
-        {!loading && q.length < 2 && (
-          <div className="text-center text-white/20 mt-8 text-sm px-4">Введите имя или логин пользователя</div>
-        )}
+        {!loading && q.length >= 2 && results.length === 0 && <div className="text-center text-white/25 mt-8 text-sm">Никого не найдено</div>}
+        {!loading && q.length < 2 && <div className="text-center text-white/20 mt-8 text-sm px-4">Введите имя или логин пользователя</div>}
         {results.map(u => (
           <button key={u.id} onClick={() => onOpenChat(u.id)}
             className="w-full px-3 py-3 rounded-xl flex items-center gap-3 hover:bg-white/5 transition-all text-left">
@@ -394,12 +459,6 @@ function ProfilePanel({ user, onLogout }: { user: User; onLogout: () => void }) 
         <Av letters={user.avatar_letters} size="lg" />
         <h3 className="text-lg font-bold text-white/90 mt-3">{user.display_name}</h3>
         <p className="text-sm text-white/40">@{user.username}</p>
-      </div>
-      <div className="surface rounded-2xl p-4 border border-white/5 mb-4">
-        <div className="flex items-center gap-2 text-sm text-green-400">
-          <Icon name="Lock" size={14} />
-          <span>Сквозное шифрование включено</span>
-        </div>
       </div>
       <button onClick={onLogout}
         className="w-full py-3 rounded-xl border border-red-500/20 text-red-400/70 text-sm hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 mt-auto">
@@ -429,7 +488,15 @@ function formatTime(iso: string): string {
   if (!iso) return "";
   const d = new Date(iso.includes("+") || iso.includes("Z") ? iso : iso + "Z");
   const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 86400000) return d.toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+  if (now.getTime() - d.getTime() < 86400000) return d.toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleDateString("ru", { day: "numeric", month: "short" });
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
