@@ -174,14 +174,14 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
       </nav>
 
       {/* Панель слева */}
-      <div className="w-72 flex-shrink-0 border-r border-white/5 flex flex-col">
+      <div className="w-72 flex-shrink-0 border-r border-white/5 flex flex-col overflow-hidden">
         {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} />}
         {section === "search" && <SearchPeople onOpenChat={openChat} />}
         {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} />}
       </div>
 
       {/* Диалог */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
         {activeChat
           ? <ChatWindow key={activeChat.id} chat={activeChat} currentUser={user} />
           : <EmptyState />}
