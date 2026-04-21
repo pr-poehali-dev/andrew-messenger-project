@@ -147,7 +147,7 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
   ] as const;
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: "hsl(224, 30%, 7%)" }}>
+    <div style={{ position: "fixed", inset: 0, display: "flex", overflow: "hidden", background: "hsl(224, 30%, 7%)" }}>
       {/* Sidebar */}
       <nav className="w-16 flex flex-col items-center py-4 gap-1 border-r border-white/5 flex-shrink-0" style={{ background: "hsl(225, 30%, 9%)" }}>
         <div className="mb-4">
@@ -174,14 +174,14 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
       </nav>
 
       {/* Панель слева */}
-      <div className="w-72 flex-shrink-0 border-r border-white/5 flex flex-col overflow-hidden">
+      <div style={{ width: "288px", flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.05)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} />}
         {section === "search" && <SearchPeople onOpenChat={openChat} />}
         {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} />}
       </div>
 
       {/* Диалог */}
-      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+      <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden" }}>
         {activeChat
           ? <ChatWindow key={activeChat.id} chat={activeChat} currentUser={user} />
           : <EmptyState />}
@@ -317,7 +317,7 @@ function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
   const isImage = (type?: string) => type?.startsWith("image/");
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
       {/* Шапка */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 flex-shrink-0" style={{ background: "hsl(225,28%,10%)" }}>
         <Av letters={chat.partner_avatar} size="md" />
@@ -471,7 +471,7 @@ function ProfilePanel({ user, onLogout }: { user: User; onLogout: () => void }) 
 /* ─── Empty State ─── */
 function EmptyState() {
   return (
-    <div className="h-full flex items-center justify-center">
+    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div className="text-center text-white/20">
         <div className="w-16 h-16 rounded-2xl gradient-btn opacity-20 flex items-center justify-center mx-auto mb-4">
           <span className="text-white font-black text-3xl">A</span>
