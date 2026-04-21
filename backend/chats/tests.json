@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "name": "GET /chats without session returns 401",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    }
+  ]
+}

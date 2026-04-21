@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "GET /me without session returns 401",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401,
+      "headers": {"X-Session-Id": ""},
+      "queryStringParameters": {"action": "me"}
+    }
+  ]
+}
