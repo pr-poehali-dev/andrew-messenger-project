@@ -32,6 +32,8 @@ export const authApi = {
   login: (login: string, password: string) =>
     post(URLS.auth, { action: "login", login, password }),
   logout: () => post(URLS.auth, { action: "logout" }),
+  updateProfile: (display_name: string, avatar_letters: string) =>
+    post(URLS.auth, { action: "update_profile", display_name, avatar_letters }),
 };
 
 // Chats

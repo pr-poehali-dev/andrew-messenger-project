@@ -108,11 +108,11 @@ export default function App() {
   );
 
   if (!user) return <AuthScreen onAuth={setUser} />;
-  return <Messenger user={user} onLogout={() => { localStorage.removeItem("andrew_session"); setUser(null); }} />;
+  return <Messenger user={user} onLogout={() => { localStorage.removeItem("andrew_session"); setUser(null); }} onUserUpdate={setUser} />;
 }
 
 /* ─── Messenger ─── */
-function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
+function Messenger({ user, onLogout, onUserUpdate }: { user: User; onLogout: () => void; onUserUpdate: (u: User) => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [section, setSection] = useState<"chats" | "search" | "profile">("chats");
@@ -177,7 +177,7 @@ function Messenger({ user, onLogout }: { user: User; onLogout: () => void }) {
       <div style={{ width: "288px", flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.05)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} />}
         {section === "search" && <SearchPeople onOpenChat={openChat} />}
-        {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} />}
+        {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />}
       </div>
 
       {/* Диалог */}
@@ -451,7 +451,28 @@ function SearchPeople({ onOpenChat }: { onOpenChat: (partner_id: number) => void
 }
 
 /* ─── Profile Panel ─── */
-function ProfilePanel({ user, onLogout }: { user: User; onLogout: () => void }) {
+function ProfilePanel({ user, onLogout, onUserUpdate }: { user: User; onLogout: () => void; onUserUpdate: (u: User) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(user.display_name);
+  const [avatarLetters, setAvatarLetters] = useState(user.avatar_letters);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const save = async () => {
+    if (!displayName.trim()) { setError("Имя не может быть пустым"); return; }
+    setSaving(true); setError(""); setSuccess(false);
+    const res = await authApi.updateProfile(displayName.trim(), avatarLetters.trim());
+    setSaving(false);
+    if (res.error) { setError(res.error); return; }
+    onUserUpdate({ ...user, display_name: res.display_name, avatar_letters: res.avatar_letters });
+    setSuccess(true);
+    setEditing(false);
+    setTimeout(() => setSuccess(false), 2000);
+  };
+
+  const inp = "w-full surface rounded-xl px-4 py-2.5 text-sm placeholder:text-white/30 outline-none focus:ring-1 focus:ring-blue-500/40 border border-white/8";
+
   return (
     <div className="flex flex-col h-full p-4">
       <h2 className="font-semibold text-white/80 mb-6">Профиль</h2>
@@ -460,6 +481,39 @@ function ProfilePanel({ user, onLogout }: { user: User; onLogout: () => void }) 
         <h3 className="text-lg font-bold text-white/90 mt-3">{user.display_name}</h3>
         <p className="text-sm text-white/40">@{user.username}</p>
       </div>
+
+      {editing ? (
+        <div className="surface rounded-2xl p-4 border border-white/5 mb-4 space-y-3">
+          <div>
+            <label className="text-xs text-white/40 mb-1 block">Имя</label>
+            <input className={inp} value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Ваше имя" />
+          </div>
+          <div>
+            <label className="text-xs text-white/40 mb-1 block">Буквы аватара (1–2 символа)</label>
+            <input className={inp} value={avatarLetters} maxLength={2}
+              onChange={e => setAvatarLetters(e.target.value.toUpperCase())} placeholder="АБ" />
+          </div>
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={save} disabled={saving}
+              className="flex-1 py-2 rounded-xl gradient-btn text-white text-sm font-medium disabled:opacity-50">
+              {saving ? "Сохраняю..." : "Сохранить"}
+            </button>
+            <button onClick={() => { setEditing(false); setDisplayName(user.display_name); setAvatarLetters(user.avatar_letters); setError(""); }}
+              className="flex-1 py-2 rounded-xl border border-white/10 text-white/50 text-sm">
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setEditing(true)}
+          className="w-full py-2.5 rounded-xl border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-all flex items-center justify-center gap-2 mb-2">
+          <Icon name="Pencil" size={14} /> Редактировать профиль
+        </button>
+      )}
+
+      {success && <p className="text-green-400 text-xs text-center mb-2">Профиль обновлён!</p>}
+
       <button onClick={onLogout}
         className="w-full py-3 rounded-xl border border-red-500/20 text-red-400/70 text-sm hover:bg-red-500/10 transition-all flex items-center justify-center gap-2 mt-auto">
         <Icon name="LogOut" size={15} /> Выйти из аккаунта

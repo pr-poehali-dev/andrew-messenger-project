@@ -138,6 +138,32 @@ def handler(event: dict, context) -> dict:
 
         return ok({"session_id": new_session, "user": {"id": user_id, "username": username, "display_name": display_name, "avatar_letters": avatar_letters}})
 
+    # POST update_profile
+    if method == "POST" and action == "update_profile":
+        if not session_id:
+            return err("Не авторизован", 401)
+        display_name = body.get("display_name", "").strip()
+        avatar_letters = body.get("avatar_letters", "").strip().upper()
+        if not display_name:
+            return err("Имя не может быть пустым")
+        if not avatar_letters:
+            avatar_letters = "".join([w[0].upper() for w in display_name.split()[:2]])
+        if len(avatar_letters) > 2:
+            avatar_letters = avatar_letters[:2]
+        conn = get_conn()
+        cur = conn.cursor()
+        user = get_user_by_session(cur, session_id)
+        if not user:
+            conn.close()
+            return err("Сессия истекла", 401)
+        cur.execute(
+            "UPDATE users SET display_name = %s, avatar_letters = %s WHERE id = %s",
+            (display_name, avatar_letters, user["id"])
+        )
+        conn.commit()
+        conn.close()
+        return ok({"display_name": display_name, "avatar_letters": avatar_letters})
+
     # POST logout
     if method == "POST" and action == "logout":
         if session_id:
