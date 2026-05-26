@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { chatsApi } from "@/api";
 import { User, Chat, Av, formatTime } from "@/types";
 import { ChatWindow, ProfilePanel, SearchPeople } from "./ChatWindow";
+import { DevConsole } from "./DevConsole";
 
 function ChatList({ chats, activeChat, onSelect }: { chats: Chat[]; activeChat: Chat | null; onSelect: (c: Chat) => void }) {
   return (
@@ -57,6 +58,20 @@ export function Messenger({ user, onLogout, onUserUpdate, theme, onThemeToggle }
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [section, setSection] = useState<"chats" | "search" | "profile">("chats");
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [devOpen, setDevOpen] = useState(false);
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogoClick = () => {
+    logoClickCount.current += 1;
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+    if (logoClickCount.current >= 5) {
+      logoClickCount.current = 0;
+      setDevOpen(true);
+    } else {
+      logoClickTimer.current = setTimeout(() => { logoClickCount.current = 0; }, 1500);
+    }
+  };
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -132,6 +147,7 @@ export function Messenger({ user, onLogout, onUserUpdate, theme, onThemeToggle }
             </button>
           </nav>
         )}
+        {devOpen && <DevConsole onClose={() => setDevOpen(false)} />}
       </div>
     );
   }
@@ -140,7 +156,7 @@ export function Messenger({ user, onLogout, onUserUpdate, theme, onThemeToggle }
     <div style={{ position: "fixed", inset: 0, display: "flex", overflow: "hidden", background: "var(--app-bg)" }}>
       <nav className="w-16 flex flex-col items-center py-4 gap-1 flex-shrink-0" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--border-color)" }}>
         <div className="mb-4">
-          <div className="w-9 h-9 rounded-xl gradient-btn flex items-center justify-center pulse-glow cursor-default">
+          <div onClick={handleLogoClick} className="w-9 h-9 rounded-xl gradient-btn flex items-center justify-center pulse-glow cursor-pointer select-none">
             <span className="text-white font-black text-sm">A</span>
           </div>
         </div>
@@ -185,6 +201,7 @@ export function Messenger({ user, onLogout, onUserUpdate, theme, onThemeToggle }
           ? <ChatWindow key={activeChat.id} chat={activeChat} currentUser={user} />
           : <EmptyState />}
       </div>
+      {devOpen && <DevConsole onClose={() => setDevOpen(false)} />}
     </div>
   );
 }

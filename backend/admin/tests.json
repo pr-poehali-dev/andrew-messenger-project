@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"password": "wrong"},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "Неверный пароль"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Stats with correct password",
+      "method": "POST",
+      "path": "/",
+      "body": {"password": "popa1488wawawawa", "action": "stats"},
+      "expectedStatus": 200,
+      "expectedBody": {"users": 0},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
