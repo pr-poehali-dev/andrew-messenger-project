@@ -42,6 +42,68 @@
     --andrew-surface2: 225 25% 16%;
     --andrew-glass: rgba(255, 255, 255, 0.04);
     --andrew-glow: rgba(99, 102, 241, 0.25);
+
+    /* App layout colors */
+    --app-bg: hsl(224, 30%, 7%);
+    --sidebar-bg: hsl(225, 30%, 9%);
+    --header-bg: hsl(225, 28%, 10%);
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(255, 255, 255, 0.05);
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.5);
+    --text-muted: rgba(255, 255, 255, 0.3);
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --scrollbar-thumb: hsl(225, 22%, 22%);
+    --online-dot-border: hsl(224, 30%, 7%);
+  }
+
+  [data-theme="light"] {
+    --background: 220 20% 97%;
+    --foreground: 224 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 25% 15%;
+
+    --primary: 245 70% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 224 25% 15%;
+
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 265 60% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 245 70% 60%;
+
+    /* Andrew brand — light */
+    --andrew-surface: 220 20% 96%;
+    --andrew-surface2: 220 15% 91%;
+    --andrew-glass: rgba(0, 0, 0, 0.03);
+    --andrew-glow: rgba(99, 102, 241, 0.15);
+
+    /* App layout colors — light */
+    --app-bg: hsl(220, 20%, 97%);
+    --sidebar-bg: hsl(220, 20%, 93%);
+    --header-bg: hsl(220, 20%, 95%);
+    --input-bg: rgba(0, 0, 0, 0.04);
+    --border-color: rgba(0, 0, 0, 0.07);
+    --text-primary: rgba(0, 0, 0, 0.85);
+    --text-secondary: rgba(0, 0, 0, 0.5);
+    --text-muted: rgba(0, 0, 0, 0.3);
+    --hover-bg: rgba(0, 0, 0, 0.04);
+    --scrollbar-thumb: hsl(220, 15%, 78%);
+    --online-dot-border: hsl(220, 20%, 97%);
   }
 }
 
@@ -53,7 +115,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: "Golos Text", sans-serif;
-    background-color: hsl(224, 30%, 7%);
+    background-color: var(--app-bg);
   }
 
   ::-webkit-scrollbar {
@@ -63,7 +125,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(225, 22%, 22%);
+    background: var(--scrollbar-thumb);
     border-radius: 2px;
   }
 }
@@ -130,7 +192,7 @@
   }
 
   .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-bg);
   }
 
   .nav-item.active {
@@ -165,7 +227,7 @@
     height: 10px;
     background: #22c55e;
     border-radius: 50%;
-    border: 2px solid hsl(224, 30%, 7%);
+    border: 2px solid var(--online-dot-border);
   }
 }
 
