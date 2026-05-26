@@ -116,6 +116,13 @@ function Messenger({ user, onLogout, onUserUpdate }: { user: User; onLogout: () 
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [section, setSection] = useState<"chats" | "search" | "profile">("chats");
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const loadChats = useCallback(async () => {
     const res = await chatsApi.list();
@@ -145,6 +152,46 @@ function Messenger({ user, onLogout, onUserUpdate }: { user: User; onLogout: () 
     { id: "search", icon: "Search", label: "Найти людей" },
     { id: "profile", icon: "User", label: "Профиль" },
   ] as const;
+
+  // Мобильный: показываем чат если открыт, иначе панель
+  const mobileShowChat = isMobile && activeChat !== null;
+
+  if (isMobile) {
+    return (
+      <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", overflow: "hidden", background: "hsl(224, 30%, 7%)" }}>
+        {/* Основная область */}
+        <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden" }}>
+          {mobileShowChat ? (
+            <ChatWindow key={activeChat!.id} chat={activeChat!} currentUser={user} onBack={() => setActiveChat(null)} />
+          ) : (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              {section === "chats" && <ChatList chats={chats} activeChat={activeChat} onSelect={setActiveChat} />}
+              {section === "search" && <SearchPeople onOpenChat={openChat} />}
+              {section === "profile" && <ProfilePanel user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />}
+            </div>
+          )}
+        </div>
+
+        {/* Нижний nav-bar (скрывается когда открыт чат) */}
+        {!mobileShowChat && (
+          <nav style={{ background: "hsl(225, 30%, 9%)", borderTop: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}
+            className="flex items-center justify-around py-2 px-4">
+            {navItems.map(item => (
+              <button key={item.id} onClick={() => setSection(item.id)}
+                className={`flex flex-col items-center gap-1 px-5 py-1.5 rounded-xl transition-all ${section === item.id ? "text-white" : "text-white/40"}`}>
+                <Icon name={item.icon} size={22} />
+                <span className="text-[10px]">{item.label}</span>
+              </button>
+            ))}
+            <button onClick={onLogout} className="flex flex-col items-center gap-1 px-5 py-1.5 rounded-xl text-red-400/60">
+              <Icon name="LogOut" size={22} />
+              <span className="text-[10px]">Выйти</span>
+            </button>
+          </nav>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", overflow: "hidden", background: "hsl(224, 30%, 7%)" }}>
@@ -223,7 +270,7 @@ function ChatList({ chats, activeChat, onSelect }: { chats: Chat[]; activeChat: 
 }
 
 /* ─── Chat Window ─── */
-function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
+function ChatWindow({ chat, currentUser, onBack }: { chat: Chat; currentUser: User; onBack?: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -319,7 +366,12 @@ function ChatWindow({ chat, currentUser }: { chat: Chat; currentUser: User }) {
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
       {/* Шапка */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 flex-shrink-0" style={{ background: "hsl(225,28%,10%)" }}>
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/5 flex-shrink-0" style={{ background: "hsl(225,28%,10%)" }}>
+        {onBack && (
+          <button onClick={onBack} className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/8 transition-all flex-shrink-0 -ml-1 mr-1">
+            <Icon name="ChevronLeft" size={22} />
+          </button>
+        )}
         <Av letters={chat.partner_avatar} size="md" />
         <div>
           <div className="font-semibold text-white/90">{chat.partner_name}</div>
