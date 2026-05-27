@@ -1,12 +1,50 @@
 {
   "tests": [
     {
-      "name": "GET /me without session returns 401",
+      "name": "GET me without session",
       "method": "GET",
       "path": "/",
-      "expectedStatus": 401,
       "headers": {"X-Session-Id": ""},
-      "queryStringParameters": {"action": "me"}
+      "queryStringParameters": {"action": "me"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "Не авторизован"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "send_code missing email",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "send_code", "email": ""},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Укажите корректный email"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "register without code",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "register", "username": "test", "display_name": "Test", "email": "test@test.com", "password": "123456", "code": ""},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Заполните все поля"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "register with wrong code",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "register", "username": "testuser99", "display_name": "Test User", "email": "nocode@test.com", "password": "123456", "code": "000000"},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Неверный или просроченный код подтверждения"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "login wrong password",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "login": "nobody", "password": "wrongpass"},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Неверный логин или пароль"},
+      "bodyMatcher": "partial"
     }
   ]
 }

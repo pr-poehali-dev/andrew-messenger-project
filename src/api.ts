@@ -28,7 +28,9 @@ async function get(url: string, params: Record<string, string> = {}) {
 // Auth
 export const authApi = {
   me: () => get(URLS.auth, { action: "me" }),
-  register: (data: { username: string; display_name: string; email: string; password: string }) =>
+  sendCode: (email: string) =>
+    post(URLS.auth, { action: "send_code", email }),
+  register: (data: { username: string; display_name: string; email: string; password: string; code: string }) =>
     post(URLS.auth, { action: "register", ...data }),
   login: (login: string, password: string) =>
     post(URLS.auth, { action: "login", login, password }),
